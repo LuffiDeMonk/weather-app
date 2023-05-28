@@ -6,12 +6,12 @@ import { geography } from "../Api";
 const formattedDate = (
   secs,
   zone,
-  format = "cccc dd LLL yyyy'| Local Time: 'hh:mm a"
+  format = "cccc dd LLL yyyy' | Local Time: 'hh:mm a"
 ) => DateTime.fromSeconds(secs).setZone(zone).toFormat(format);
 
-const fetchWeather = async (term, unit) => {
-  const response = await geography.get(`/weather?q=${term}&units=${unit}`);
-  return response;
+const fetchWeatherByTerm = async (term, unit) => {
+  const { data } = await geography.get(`/weather?q=${term}&units=${unit}`);
+  return data;
 };
 
 const fetchForecast = async (lat, lon, unit) => {
@@ -23,108 +23,144 @@ const fetchForecast = async (lat, lon, unit) => {
 };
 
 const fetchWeatherByLocation = async (lat, lon, unit) => {
-  const response = await geography.get(
+  const { data } = await geography.get(
     `/weather?lat=${lat}&lon=${lon}&units=${unit}`
   );
-  return response;
+  return data;
 };
 
-export const useWeatherData = (debounceTerm, unit) => {
-  const { data: weatherData, isLoading: dataLoading } = useQuery(
-    ["weather", debounceTerm, unit],
-    () => fetchWeather(debounceTerm, unit),
+export const fetchWeather = (term, unit) => {
+  const { data, isSuccess } = useQuery(
+    ["search-weather", term, unit],
+    () => fetchWeatherByTerm(term, unit),
     {
-      enabled: !!debounceTerm,
+      enabled: !!term,
+      refetchOnWindowFocus: false,
       select: (data) => {
-        let weather = {};
-        weather.lat = data.data.coord.lat;
-        weather.lon = data.data.coord.lon;
-        weather.description = data.data.weather[0].main;
-        weather.iconImage = data.data.weather[0].icon;
-        weather.temp = data.data.main.temp.toFixed(0);
-        weather.feelsLike = data.data.main.feels_like.toFixed(0);
-        weather.temp_min = data.data.main.temp_min.toFixed(0);
-        weather.temp_max = data.data.main.temp_max.toFixed(0);
-        weather.humidity = data.data.main.humidity.toFixed(0);
-        weather.windSpeed = data.data.wind.speed.toFixed(0);
-        weather.country = data.data.sys.country;
-        weather.name = data.data.name;
-        weather.format = formattedDate(data.data.dt, data.data.timeZone);
-        weather.sunrise = formattedDate(
-          data.data.sys.sunrise,
-          data.data.timeZone,
+        let weatherData = {};
+        weatherData.lat = data?.coord.lat;
+        weatherData.lon = data?.coord.lon;
+        weatherData.datetime = formattedDate(data?.dt, data?.timeZone);
+        weatherData.feels_like = data?.main.feels_like.toFixed();
+        weatherData.humidity = data?.main.humidity.toFixed();
+        weatherData.temperature = data?.main.temp.toFixed();
+        weatherData.max_temp = data?.main.temp_max.toFixed();
+        weatherData.min_temp = data?.main.temp_min.toFixed();
+        weatherData.country = data?.sys.country;
+        weatherData.sunriseTime = formattedDate(
+          data?.sys.sunrise,
+          data?.timeZone,
           "hh:mm a"
         );
-        weather.sunset = formattedDate(
-          data.data.sys.sunset,
-          data.data.timeZone,
+        weatherData.sunsetTime = formattedDate(
+          data?.sys.sunset,
+          data?.timeZone,
           "hh:mm a"
         );
-        return weather;
+        weatherData.weather = data?.weather[0].main;
+        weatherData.weatherId = data?.weather[0].id;
+        weatherData.imageURL = `https://openweathermap.org/img/wn/${data?.weather[0].icon}@2x.png`;
+        weatherData.name = data?.name;
+        weatherData.windSpeed = data?.wind.speed.toFixed();
+        return weatherData;
       },
     }
   );
-
-  let lat = weatherData?.lat;
-  let lon = weatherData?.lon;
-
-  const { data: prediction } = useQuery(
+  let lat = data?.lat;
+  let lon = data?.lon;
+  const { data: forecastDataByTerm } = useQuery(
     ["forecast", lat, lon, unit],
     () => fetchForecast(lat, lon, unit),
     {
       enabled: !!lat && !!lon,
       select: (data) => {
-        let hourly = data?.slice(0, 6);
-        let i = [11, 18, 25, 32];
-        let daily = i?.map((i) => {
-          if (i >= 0 && i < data?.length) {
-            return data[i];
-          }
-        });
-        return { hourly, daily };
+        let hourly = data?.slice(1, 6);
+
+        const formattedHourly = hourly?.map((item) => ({
+          temperature: item?.main.temp.toFixed(),
+          imageIcon: `https://openweathermap.org/img/wn/${item?.weather[0].icon}@2x.png`,
+          time: formattedDate(item.dt, data?.timeZone, "hh:mm a"),
+        }));
+        let daily = [data[11], data[18], data[27], data[34]];
+        const formattedDaily = daily?.map((item) => ({
+          temperature: item?.main.temp.toFixed(),
+          imageIcon: `https://openweathermap.org/img/wn/${item?.weather[0].icon}@2x.png`,
+          time: formattedDate(item.dt, data?.timeZone, "ccc"),
+        }));
+
+        return { formattedHourly, formattedDaily };
+      },
+    }
+  );
+  return { data, isSuccess, forecastDataByTerm };
+};
+
+export const fetchWeatherByLocationInfo = (latitude, longitude, unit) => {
+  const { data: dataByLocation, isLoading: locationWeatherLoading } = useQuery(
+    ["location-weather", latitude, longitude, unit],
+    () => fetchWeatherByLocation(latitude, longitude, unit),
+    {
+      refetchOnWindowFocus: false,
+      select: (data) => {
+        let weatherData = {};
+        weatherData.lat = data?.coord.lat;
+        weatherData.lon = data?.coord.lon;
+        weatherData.datetime = formattedDate(data?.dt, data?.timeZone);
+        weatherData.feels_like = data?.main.feels_like.toFixed();
+        weatherData.humidity = data?.main.humidity.toFixed();
+        weatherData.temperature = data?.main.temp.toFixed();
+        weatherData.timeZone = data?.timeZone;
+        weatherData.max_temp = data?.main.temp_max.toFixed();
+        weatherData.min_temp = data?.main.temp_min.toFixed();
+        weatherData.country = data?.sys.country;
+        weatherData.sunriseTime = formattedDate(
+          data?.sys.sunrise,
+          data?.timeZone,
+          "hh:mm a"
+        );
+        weatherData.sunsetTime = formattedDate(
+          data?.sys.sunset,
+          data?.timeZone,
+          "hh:mm a"
+        );
+        weatherData.weather = data?.weather[0].main;
+        weatherData.weatherId = data?.weather[0].id;
+        weatherData.imageURL = `https://openweathermap.org/img/wn/${data?.weather[0].icon}@2x.png`;
+        weatherData.name = data?.name;
+        weatherData.windSpeed = data?.wind.speed.toFixed();
+        return weatherData;
+      },
+    }
+  );
+  let lat = dataByLocation?.lat;
+  let lon = dataByLocation?.lon;
+  const { data: forecastData, isSuccess: locationLoading } = useQuery(
+    ["forecast", lat, lon, unit],
+    () => fetchForecast(lat, lon, unit),
+    {
+      enabled: !!lat && !!lon,
+      select: (data) => {
+        let hourly = data?.slice(1, 6);
+
+        const formattedHourly = hourly?.map((item) => ({
+          temperature: item?.main.temp.toFixed(),
+          imageIcon: `https://openweathermap.org/img/wn/${item?.weather[0].icon}@2x.png`,
+          time: formattedDate(item.dt, dataByLocation?.timeZone, "hh:mm a"),
+        }));
+        let daily = [data[11], data[18], data[27], data[34]];
+        const formattedDaily = daily?.map((item) => ({
+          temperature: item?.main.temp.toFixed(),
+          imageIcon: `https://openweathermap.org/img/wn/${item?.weather[0].icon}@2x.png`,
+          time: formattedDate(item.dt, dataByLocation?.timeZone, "ccc"),
+        }));
+
+        return { formattedHourly, formattedDaily };
       },
     }
   );
   return {
-    weatherData,
-    prediction,
-    dataLoading,
+    dataByLocation,
+    locationLoading,
+    forecastData,
   };
-};
-
-export const useLocationData = (latitude, longitude, unit) => {
-  const { data: locationData, isLoading: locationLoading } = useQuery(
-    ["weather-location", latitude, longitude, unit],
-    () => fetchWeatherByLocation(latitude, longitude, unit),
-    {
-      select: (data) => {
-        let weather = {};
-        weather.lat = data.data.coord.lat;
-        weather.lon = data.data.coord.lon;
-        weather.description = data.data.weather[0].main;
-        weather.iconImage = data.data.weather[0].icon;
-        weather.temp = data.data.main.temp.toFixed(0);
-        weather.feelsLike = data.data.main.feels_like.toFixed(0);
-        weather.temp_min = data.data.main.temp_min.toFixed(0);
-        weather.temp_max = data.data.main.temp_max.toFixed(0);
-        weather.humidity = data.data.main.humidity.toFixed(0);
-        weather.windSpeed = data.data.wind.speed.toFixed(0);
-        weather.country = data.data.sys.country;
-        weather.name = data.data.name;
-        weather.format = formattedDate(data.data.dt, data.data.timeZone);
-        weather.sunrise = formattedDate(
-          data.data.sys.sunrise,
-          data.data.timeZone,
-          "hh:mm a"
-        );
-        weather.sunset = formattedDate(
-          data.data.sys.sunset,
-          data.data.timeZone,
-          "hh:mm a"
-        );
-        return weather;
-      },
-    }
-  );
-  return { locationData, locationLoading };
 };

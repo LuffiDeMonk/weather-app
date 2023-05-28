@@ -1,4 +1,3 @@
-import React, { useEffect, useState } from "react";
 import { FaThermometerThreeQuarters } from "react-icons/fa";
 import { BiWind, BiUpArrowAlt, BiDownArrowAlt } from "react-icons/bi";
 import { IoMdWater } from "react-icons/io";
@@ -8,19 +7,21 @@ const WeatherInfo = ({ data }) => {
   return (
     <div>
       <div className="text-center text-2xl text-stone-200 my-3">
-        {data?.description}
+        {`${data?.weather}`}
       </div>
       <div className="flex flex-col sm:flex-row items-center justify-center gap-8 w-full mb-2">
         <div className="flex-1 flex items-center justify-center h-full">
           <img
-            src={`https://openweathermap.org/img/wn/${data?.iconImage}@2x.png`}
+            src={`${data?.imageURL}`}
             alt=""
-            className="h-16 w-16 object-cover"
+            className="h-20 w-20 object-cover"
           />
         </div>
         <div className="flex-1">
           <div className="h-full flex items-center justify-center">
-            <p className="text-5xl font-light">{data?.temp}&#176;</p>
+            <p className="text-5xl font-light">
+              {`${data?.temperature}`}&#176;
+            </p>
           </div>
         </div>
         <div className="flex-1">
@@ -29,19 +30,19 @@ const WeatherInfo = ({ data }) => {
               <li className="inline-flex items-center space-x-1">
                 <FaThermometerThreeQuarters size={15} />
                 <p className="text-md">
-                  Feels like: <span>{data?.feelsLike}</span>
+                  Feels like: <span>{`${data?.feels_like}`}&#176;</span>
                 </p>
               </li>
               <li className="inline-flex items-center space-x-1">
                 <BiWind size={15} />
                 <p className="text-md">
-                  Wind: <span>{data?.windSpeed} m/s</span>
+                  Wind: <span>{`${data?.windSpeed}`} m/s</span>
                 </p>
               </li>
               <li className="flex items-center space-x-1">
                 <IoMdWater size={14} />
                 <p className="text-md">
-                  Humidity: <span>{`${data?.humidity}%`}</span>
+                  Humidity: <span>{`${data?.humidity}`}%</span>
                 </p>
               </li>
             </ul>
@@ -52,25 +53,25 @@ const WeatherInfo = ({ data }) => {
         <div className="flex items-center justify-center">
           <BsSunrise size={20} />
           <p className="text-md font-semibold">
-            Sunrise: <span>{data?.sunrise}</span>
+            Sunrise: <span>{`${data?.sunriseTime}`}</span>
           </p>
         </div>
         <div className="flex items-center justify-between gap-2">
           <BsSunset size={20} />
           <p className="text-md font-semibold">
-            Sunset: <span>{data?.sunset}</span>
+            Sunset: <span>{`${data?.sunsetTime}`}</span>
           </p>
         </div>
-        <div className="flex items-center justify-between gap-1">
+        <div className="flex items-center justify-between gap-2">
           <BiUpArrowAlt size={20} />
           <p className="text-md font-semibold">
-            Maximum: <span>{data?.temp_max}&#176;</span>
+            Maximum: <span>{`${data?.max_temp}`}&#176;</span>
           </p>
         </div>
-        <div className="flex items-center justify-between gap-1">
+        <div className="flex items-center justify-between gap-2 ">
           <BiDownArrowAlt size={20} />
           <p className="text-md font-semibold">
-            Minimum: <span>{data?.temp_min}&#176;</span>
+            Minimum: <span>{`${data?.min_temp}`}&#176;</span>
           </p>
         </div>
       </div>

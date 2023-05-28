@@ -3,17 +3,12 @@ import React, { useState } from "react";
 import { CiSearch } from "react-icons/ci";
 import { GoLocation } from "react-icons/go";
 
-import { usedebounced } from "./utils/debounced";
-
 const Search = ({ setTerm, setUnit }) => {
   const [search, setSearch] = useState("");
 
-  const debounceTerm = usedebounced(search, 1000);
-
-  setTerm(debounceTerm);
-
   const submitData = (event) => {
     event.preventDefault();
+    setTerm(search);
   };
   return (
     <div className="flex w-full justify-evenly items-center my-2">
